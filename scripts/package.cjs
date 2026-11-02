@@ -8,6 +8,7 @@ const app=path.join(dest,'resources/app');fs.mkdirSync(app,{recursive:true});
 for(const name of ['src','tools'])fs.cpSync(path.join(root,name),path.join(app,name),{recursive:true});
 fs.writeFileSync(path.join(app,'package.json'),JSON.stringify({name:pkg.name,version:pkg.version,description:pkg.description,main:pkg.main},null,2));
 fs.copyFileSync(path.join(root,'README.md'),path.join(dest,'使用说明.md'));
+fs.cpSync(path.join(root,'docs'),path.join(dest,'docs'),{recursive:true});
 fs.copyFileSync(path.join(root,'THIRD_PARTY_NOTICES.md'),path.join(dest,'THIRD_PARTY_NOTICES.md'));
 fs.renameSync(path.join(dest,'electron.exe'),path.join(dest,'Komorebi.exe'));
 console.log(dest);

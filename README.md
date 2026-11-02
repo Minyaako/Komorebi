@@ -1,66 +1,134 @@
-# 木漏日 · Komorebi 1.0
+<div align="center">
+  <img src="docs/images/logo.svg" width="96" height="96" alt="木漏日图标" />
+  <h1>木漏日 · Komorebi</h1>
+  <p><strong>收藏故事，整理游戏，记录每一次相遇。</strong></p>
+  <p>面向 Galgame 与同人游戏玩家的 Windows 游戏管理器</p>
+  <p>
+    <a href="https://github.com/Minyaako/Komorebi/releases/latest"><img alt="版本 v1.0" src="https://img.shields.io/badge/release-v1.0-e9b77c?style=flat-square&amp;labelColor=15201e" /></a>
+    <img alt="Windows x64" src="https://img.shields.io/badge/platform-Windows_x64-91aca4?style=flat-square&amp;labelColor=15201e" />
+    <a href="https://developer.nextmoe.dev/docs"><img alt="基于 NextMoe API" src="https://img.shields.io/badge/API-NextMoe-91aca4?style=flat-square&amp;labelColor=15201e" /></a>
+  </p>
+  <p><a href="https://github.com/Minyaako/Komorebi/releases/latest"><strong>下载安装</strong></a> · <a href="#界面一览">界面一览</a> · <a href="#已完成的核心功能">核心功能</a> · <a href="#接下来要做的事">后续计划</a> · <a href="https://github.com/Minyaako/Komorebi/issues">反馈问题</a></p>
+</div>
 
-面向 Galgame 与同人游戏的 Windows 游戏管理器，基于 **[NextMoe API](https://developer.nextmoe.dev/docs) 与 [LetsMoe（LetMoe·一启萌）](https://www.letmoe.com/)** 提供作品资料、搜索及资源服务。
+## 从 LetsMoe 出发
 
-木漏日是独立第三方客户端，与 NextMoe、LetsMoe 无官方隶属关系。感谢平台及资源贡献者；作品资料、图像和游戏资源的权利归各自权利人。发行包不包含游戏资源、用户账号或共享密钥。
+**木漏日的核心在线能力来自 [LetsMoe（LetMoe·一启萌）](https://www.letmoe.com/) 与 [NextMoe API](https://developer.nextmoe.dev/docs)。** 作品目录、标签、资源服务与账号授权依托它们提供；木漏日把这些能力和本地游戏库、下载管理、游玩记录连接起来，提供一个更适合桌面的使用入口。
 
-**[下载安装包与便携版](https://github.com/Minyaako/Komorebi/releases/latest)**
+感谢平台维护者、资料贡献者和资源分享者。木漏日是独立第三方客户端，与 NextMoe、LetsMoe 无官方隶属关系；作品、封面与资源归各自权利人。
 
-## 运行与后台
+### 一起维护资源环境
 
-解压完整发行包后运行 `Komorebi.exe`，无需安装 Node.js。请保留程序旁的 resources、locales 和 DLL 文件。当前发行包未签名。
+好用的客户端离不开持续维护的资源社区。希望大家在使用时，也愿意回到 LetsMoe 参与建设：
 
-关闭主窗口默认隐藏到系统托盘，下载、网盘目录监听和游戏计时继续运行。单击托盘图标或再次启动程序可恢复窗口。右键托盘选择「退出木漏日」，或在设置中退出。设置可关闭后台运行。整理文件、官方上传或助手窗口尚未结束时，退出会提示先完成处理；游戏运行时会确认是否停止计时。正常退出会保存会话并暂停下载，下次启动可继续任务。
+- 补充准确的作品名称、会社、标签和版本信息，让后来的玩家更容易找到作品。
+- 发现失效链接、错误关联或缺失说明时，反馈问题并协助修正。
+- 分享资源时注明来源、语言、版本、解压密码和启动方式；遵守平台规则与作者的分享要求。
+- 上传前检查文件完整性，排除自己的存档、账号信息和其他私人文件。
 
-## 数据与游戏位置
+**木漏日不内置游戏资源，也不提供共享账号或共享 API 密钥。** 资源是否可用，以及具体访问权限，以平台和当前账号为准。
 
-配置、账号密文、网站会话、缓存、新上传包及默认下载目录统一保存在 `%APPDATA%\Komorebi`。设置提供「打开数据文件夹」。游戏库位置独立管理，可添加多个磁盘上的游戏库。
+## 界面一览
 
-首次从旧源码目录或旧程序目录启动新版时，会复制相邻 `data` 中的配置、密文与网站会话，保留原件。已有游戏和历史任务的文件位置保持不变，不会搬动大量游戏文件。新下载缓存切换到统一目录。目标目录已有库配置时不会覆盖。迁移前请正常退出旧版本，不要同时运行两个不同数据目录的版本。
+### 全部游戏 · 封面拼贴
 
-不要删除旧 `data/library`、`data/downloads`、`data/uploads`：已有记录可能仍引用这些文件。应用数据目录包含私人记录和登录信息，不应随发行包分享。`KOMOREBI_DATA` 环境变量仅供隔离测试或显式使用其他数据目录。
+让整个游戏库铺展开来。卡片与拼贴可以切换，双击进入游戏详情。
 
-## 作品与游戏库
+![全部游戏的多游戏封面拼贴页](docs/images/library-collage.png)
 
-- 商店综合搜索名称、标签及接口提供的会社、staff、系列信息；支持标签包含/排除、成人内容设置、直链筛选与连续加载。
-- 作品详情展示简介、资源、评分和相关系列，可直接入库而不下载；会社、staff、标签支持进一步浏览。
-- 游戏库支持主题详情、封面网格和拼贴；状态下拉筛选与综合库搜索。收藏集按分组展示，右键游戏 → 移入收藏集 → 选择已有收藏集或输入新名称。
-- 扫描本地游戏文件夹，搜索匹配作品并保留原位置。支持评分、笔记、游玩状态、游戏时长与活动热力图。
-- 移出库仅删除记录；彻底删除游戏会另行确认文件位置。启动游戏不弹路径确认。
+<details>
+<summary><strong>作品详情：浏览介绍、系列与可用资源</strong></summary>
 
-## 下载、网盘与上传
+![作品详情页](docs/images/work-detail.png)
 
-直链下载使用 aria2，支持暂停、继续和重试。完成后由 7-Zip 校验、解压并入库；失败后保留任务，可补填密码重试。多启动程序的游戏需先选择 EXE。
+</details>
 
-网盘监听只处理启用监听后出现并稳定的压缩包，完成后移动到选定游戏库的 `.archives` 下，提示并标记「待操作」，不自动解压。可自行整理或通过导入压缩包处理。
+<details>
+<summary><strong>下载与上传：集中查看传输任务</strong></summary>
 
-上传入口自动准备游戏目录压缩包，可排除存档目录和正则匹配的路径。文件名使用游戏名，包内 `komorebi.json` 记录公开提交信息和相对启动路径，不含账号或本机绝对路径。官方助手可填写投稿、选择准备好的文件并在上传完成后提交；需要网站登录时会显示窗口。网站会话与应用 OAuth 分别保存。任务中断后不会自动重复投稿。
+![下载与上传中心](docs/images/transfers.png)
 
-## 账号与个人密钥
+</details>
 
-设置中登录 NextMoe，使用 OAuth PKCE；应用不包含 Client Secret。个人资源访问密钥需在官方控制台申领并在设置验证保存，不提供共享密钥。凭据使用 Windows DPAPI 经 Electron safeStorage 加密，不能直接复制给其他 Windows 账号使用。
+<details>
+<summary><strong>游玩足迹：记录时长与每日活动</strong></summary>
 
-游戏计时跟踪由木漏日启动的游戏进程，退出木漏日后停止记录。记录可同步到当前账号；通过其他启动器派生的游戏进程可能需要选择实际游戏 EXE。
+![个人页与游玩热力图](docs/images/playtime.png)
 
-## 源码开发
+</details>
 
-需要 Windows x64 与 Node.js 22 或更新版本。`npm ci` 安装依赖，`npm start` 启动；`npm test` 运行功能回归，`npm run test:ui` 验证收藏集和下载返回，`node scripts/background-test.cjs` 验证后台及单实例。`npm run package` 生成新的版本目录，拒绝覆盖已有发行目录。
+截图来自应用实际界面，使用独立选取的公开作品和合成演示记录，不读取个人收藏或账号；任务速度、进度及热力图仅用于展示界面。[截图来源](docs/images/SOURCES.md)，游戏封面归各自权利人。
 
-## 第三方组件与资料
+## 已完成的核心功能
 
-- Electron 45.1.0，MIT；发行包保留 LICENSE 与 Chromium notices：https://github.com/electron/electron
-- aria2 1.37.0，GPL-2.0-or-later；tools 中保留许可，源代码：https://github.com/aria2/aria2/releases/tag/release-1.37.0
-- 7-Zip 26.05，LGPL 与 unRAR 限制等，见 tools/7zip/License.txt；源代码：https://github.com/ip7z/7zip/releases/tag/26.05
-- Marked、DOMPurify 的许可随 src/ui/vendor 保留。
-- 作品资料来源 NextMoe / LetMoe / 鲲 Galgame 论坛及其标注的评分来源；作品图像归各权利人所有。官方 API 文档：https://developer.nextmoe.dev/docs
+| 模块 | v1.0 已实现 |
+| --- | --- |
+| 🔎 发现作品 | 名称、标签、会社、staff 与系列检索入口；标签包含/排除、排序、直链筛选、连续加载；前进后退保留搜索与滚动位置 |
+| 📖 作品详情 | 简介与 Markdown 资源说明、多资源展示、相关系列浏览及一键入库；可先收藏、不下载 |
+| 🗂️ 本地游戏库 | 多磁盘游戏库、目录扫描与作品匹配、综合库搜索、状态筛选、手动收藏集；卡片/拼贴与详情视图 |
+| ⬇️ 下载与整理 | aria2 下载、暂停续传；直链完成后校验与自动解压、密码重试；网盘目录监听后移入目标位置并标为待操作 |
+| ⬆️ 资源投稿 | 官方页面助手辅助填写与上传；游戏目录打包、存档目录及正则排除、启动信息清单 |
+| 🕒 个人记录 | OAuth 登录、个人资料、游戏状态、评分与笔记；游玩计时、时长同步与活动热力图 |
+| 🖥️ 桌面体验 | 托盘后台运行、单实例恢复、多主题、右键操作、横幅本地缓存；Windows 安装包与开始菜单入口 |
 
-木漏日与以上平台无官方隶属关系。
+## 接下来要做的事
 
-## Windows 安装包
+以下是待完成或继续完善的方向，不代表当前版本已经支持。
 
-运行 `Komorebi-1.0.0-Setup-x64.exe`，使用中文向导选择安装位置。默认安装到当前用户，创建开始菜单「木漏日 Komorebi」和「卸载木漏日」，不额外创建桌面快捷方式。安装版和便携版共用 `%APPDATA%\Komorebi`。更新或卸载当前正在运行的安装目录时，会要求先通过托盘正常退出；卸载保留应用数据和游戏文件。
+- [ ] **继续打磨 UI**：统一间距、字号和图标；完善高 DPI、最大化与窄窗口布局；补齐动效、空状态和键盘操作。
+- [ ] **完善资源安装**：支持游戏本体与补丁等复合资源的选择和安装顺序，改进分卷及异常任务恢复体验。
+- [ ] **改进搜索与匹配**：增强多语言别名、近似名称和扫描候选排序；结合 NextMoe 实际接口能力探索模糊检索。
+- [ ] **提高投稿助手稳定性**：适配官网表单变化，完善中断恢复与失败提示，进一步简化个人密钥申领。
+- [ ] **完善游戏计时**：更好地识别启动器拉起的子进程，改进异常退出、跨设备记录与同步冲突的处理。
+- [ ] **提升大库体验**：优化大量封面的加载、列表渲染和缓存维护。
+- [ ] **完善版本维护**：应用内更新检查、数据导出/恢复和更完整的发布回归。
 
-构建安装包：先生成对应版本便携目录，再运行 `npm run package:installer`。NSIS 配置位于 electron-builder.json，定制安装/卸载逻辑在 build/installer.nsh。当前安装包未签名。
+欢迎带着具体场景提交 [Issue](https://github.com/Minyaako/Komorebi/issues)：在哪个页面、做了什么、希望得到怎样的结果。截图和复现步骤会很有帮助，请先隐藏账号凭据及私人路径。
 
+## 安装与使用
 
-仓库中仅提交源码、隔离测试及带许可证的运行工具。`data/`、环境文件、账号会话、历史实机验证脚本与生成的安装包均由 `.gitignore` 排除。发布前运行 `node scripts/audit-release.cjs` 检查 Git 暂存内容。第三方组件说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+从 [Releases](https://github.com/Minyaako/Komorebi/releases/latest) 下载：
+
+| 文件 | 用途 |
+| --- | --- |
+| `Komorebi-1.0.0-Setup-x64.exe` | 推荐。中文安装向导，可选安装位置，创建开始菜单启动与卸载入口 |
+| `Komorebi-v1.0.0-Windows-x64.zip` | 便携版。完整解压后运行 `Komorebi.exe` |
+| `SHA256SUMS.txt` | 下载文件校验值 |
+
+**运行环境为 Windows 10/11 x64，不需要另外安装 Node.js、npm、Electron、aria2 或 7-Zip。** 应用运行时、下载/解压引擎和前端组件已随包提供；请保留完整安装目录。在线检索、登录和资源访问需要网络。网盘目录监听是可选功能，实际网盘下载由用户自己的网盘客户端完成。当前安装包未签名。
+
+1. 打开后可浏览作品，也可扫描已有游戏文件夹。
+2. 在设置中登录 NextMoe；需要资源权限时，按引导申领并保存自己的个人密钥。
+3. 将作品加入游戏库，选择资源下载或关联本地目录。
+4. 关闭主窗口后默认留在托盘，下载与计时继续；彻底退出请使用托盘菜单。
+
+应用数据统一保存在 `%APPDATA%\Komorebi`，游戏库可选择其他磁盘。安装版与便携版共用应用数据；卸载保留游戏与个人记录。旧版本迁移后，一些游戏和历史压缩包仍可能在原目录，请勿直接删除旧 `data` 文件夹。
+
+更多说明见 [使用指南](docs/USAGE.md)。
+
+## 开发与验证
+
+源码开发需要 Windows x64 与 Node.js 22 或更新版本；这些只用于开发，不是最终用户的运行依赖。
+
+```powershell
+npm ci
+npm start
+npm test
+npm run test:ui
+node scripts/background-test.cjs
+```
+
+`npm run package` 生成便携目录，`npm run package:installer` 基于该目录制作安装包。打包脚本拒绝覆盖已有便携发行目录。
+
+v1.0 已通过 57 项功能回归和关键界面测试；安装、开始菜单、后台运行、卸载保留数据均有实测。发行版还在仅保留 Windows 系统 PATH 的环境下验证了界面启动、包内下载与解压流程。
+
+`.gitignore` 排除个人数据、凭据、开发依赖和生成产物；发布前运行 `node scripts/audit-release.cjs` 检查暂存内容，并使用 Gitleaks 扫描提交历史。
+
+## 致谢
+
+- [LetsMoe / LetMoe·一启萌](https://www.letmoe.com/) 与 [NextMoe API](https://developer.nextmoe.dev/docs)：核心在线内容与资源能力。
+- [Electron](https://github.com/electron/electron)、[aria2](https://github.com/aria2/aria2)、[7-Zip](https://github.com/ip7z/7zip)：桌面运行、下载与解压。
+- [Marked](https://github.com/markedjs/marked) 与 [DOMPurify](https://github.com/cure53/DOMPurify)：资源说明渲染与清理。
+- 每一位维护资料、修复链接、提供反馈和分享作品的社区成员。
+
+组件许可证及对应源码说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

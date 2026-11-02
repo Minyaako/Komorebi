@@ -57,3 +57,5 @@ Thumbs.db
 !/scripts/background-test.cjs
 !/scripts/release-test.cjs
 !/scripts/audit-release.cjs
+
+!/scripts/readme-public-capture.cjs
