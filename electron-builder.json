@@ -1,0 +1,24 @@
+{
+  "appId": "dev.komorebi.desktop",
+  "productName": "Komorebi",
+  "directories": { "output": "../Komorebi-installer", "buildResources": "build" },
+  "artifactName": "Komorebi-${version}-Setup-${arch}.${ext}",
+  "win": { "executableName": "Komorebi", "target": [{ "target": "nsis", "arch": ["x64"] }], "signAndEditExecutable": false },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": false,
+    "createStartMenuShortcut": true,
+    "shortcutName": "木漏日 Komorebi",
+    "menuCategory": "木漏日 Komorebi",
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true,
+    "installerLanguages": ["zh_CN", "en_US"],
+    "language": "2052",
+    "installerIcon": "build/komorebi.ico",
+    "uninstallerIcon": "build/komorebi.ico",
+    "include": "build/installer.nsh"
+  }
+}

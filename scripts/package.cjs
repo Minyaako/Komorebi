@@ -1,0 +1,12 @@
+require('./sync-markdown-vendor.cjs');
+const fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..'),pkg=require('../package.json');
+const dest=path.resolve(root,`../Komorebi-v${pkg.version}-Windows-x64`);
+if(fs.existsSync(dest))throw new Error('发行目录已存在，请先检查并归档，避免覆盖：'+dest);
+fs.cpSync(path.join(root,'node_modules/electron/dist'),dest,{recursive:true});
+const app=path.join(dest,'resources/app');fs.mkdirSync(app,{recursive:true});
+for(const name of ['src','tools'])fs.cpSync(path.join(root,name),path.join(app,name),{recursive:true});
+fs.writeFileSync(path.join(app,'package.json'),JSON.stringify({name:pkg.name,version:pkg.version,description:pkg.description,main:pkg.main},null,2));
+fs.copyFileSync(path.join(root,'README.md'),path.join(dest,'使用说明.md'));
+fs.renameSync(path.join(dest,'electron.exe'),path.join(dest,'Komorebi.exe'));
+console.log(dest);

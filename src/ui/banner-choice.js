@@ -1,0 +1,4 @@
+(function(root){
+ function chooseBanner(work,width=1200,height=320){const usable=x=>x?.url&&(!x.sexual||x.sexual==='safe');if(usable(work.banner))return work.banner;const pool=[...(work.covers||[]),typeof work.cover==='string'?{url:work.cover}:work.cover].filter(usable);const unique=[...new Map(pool.map(x=>[x.url,x])).values()];const known=unique.filter(x=>x.width>0&&x.height>0);const landscape=known.filter(x=>x.width/x.height>=1.15);const choices=landscape.length?landscape:known.length?known:unique;const score=x=>{if(!x.width||!x.height)return 99;const scale=Math.max(width/x.width,height/x.height),crop=Math.abs(Math.log((x.width/x.height)/(width/height)));return Math.max(0,Math.log(scale))*3+crop*1.5;};return choices.sort((a,b)=>score(a)-score(b))[0]||null;}
+ if(typeof module==='object')module.exports={chooseBanner};else root.chooseBanner=chooseBanner;
+})(globalThis);

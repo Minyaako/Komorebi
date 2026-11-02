@@ -1,0 +1,23 @@
+{
+  "name": "komorebi",
+  "version": "1.0.0",
+  "description": "木漏日 · Galgame 与同人游戏管理器",
+  "main": "src/main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "test:ui": "node scripts/collection-menu-test.cjs && node scripts/download-return-test.cjs",
+    "package": "node scripts/package.cjs",
+    "package:installer": "electron-builder --win nsis --x64 --prepackaged ../Komorebi-v1.0.0-Windows-x64 --config electron-builder.json --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0",
+    "playwright": "1.58.2"
+  },
+  "dependencies": {
+    "dompurify": "3.4.17",
+    "marked": "18.1.2"
+  }
+}

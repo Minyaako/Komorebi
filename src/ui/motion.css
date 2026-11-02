@@ -1,0 +1,15 @@
+:root{--motion-fast:160ms;--motion-standard:260ms;--motion-spatial:540ms}
+body,.rail,.topbar,.bottom,.feature,.feature-copy,.surface,.setting-section,.steam-detail,.steam-sidebar,.steam-command,.searchbar,input,select,button{transition:background-color var(--motion-standard),color var(--motion-fast),border-color var(--motion-fast)}
+button{transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast),box-shadow var(--motion-fast),transform var(--motion-fast)}
+button:active:not(:disabled){transform:translateY(1px)}
+.wall button{transform-origin:top left;transition:opacity 320ms,box-shadow 240ms;will-change:auto}
+.wall button.selected{grid-column:span 3;grid-row:span 2;z-index:2;box-shadow:inset 0 0 0 2px var(--accent)}
+.wall button:active{transform:none}.wall button.selected .wall-copy strong{font-size:25px}
+.wall-copy{transition:opacity 220ms}.wall-shell.dragging .wall-copy{opacity:.55}.wall-shell.dragging .wall button img{transform:scale(1.015)}
+.wall-shell{transition:background-color 320ms,box-shadow 240ms}.wall-shell.dragging{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)}
+.gamecard .cover{transition:box-shadow 200ms,transform 200ms}.gamecard:hover .cover{transform:translateY(-3px);box-shadow:0 7px 18px #0003}.gamecard:active .cover{transform:translateY(-1px)}
+.chip{animation:chip-enter 180ms ease-out}.theme-option.active{box-shadow:0 0 0 1px var(--accent)}
+#toast:not([hidden]){animation:toast-enter 200ms ease-out}
+@keyframes chip-enter{from{opacity:0;translate:0 3px}to{opacity:1;translate:0 0}}
+@keyframes toast-enter{from{opacity:0;translate:0 7px}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

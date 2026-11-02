@@ -1,0 +1,2 @@
+const {test}=require('node:test'),assert=require('node:assert/strict');const {sameDocument}=require('../src/ipc-origin.cjs');
+test('IPC permits same-document anchors but rejects other documents and queries',()=>{const ui='file:///C:/app/src/ui/index.html';assert.equal(sameDocument(ui+'#account',ui),true);assert.equal(sameDocument(ui+'#main',ui),true);for(const value of ['file:///C:/app/src/index.html','file:///C:/app/src/ui/other.html',ui+'?x=1','https://example.com/index.html','invalid'])assert.equal(sameDocument(value,ui),false);});

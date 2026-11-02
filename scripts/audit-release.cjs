@@ -1,0 +1,7 @@
+const fs=require('fs'),{execFileSync}=require('child_process');
+const files=execFileSync('git',['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean),issues=[];
+const binaries=new Set(['tools/aria2c.exe','tools/7zip/7z.exe','tools/7zip/7z.dll','src/assets/tray.png','build/komorebi.ico']);
+const patterns=[/nmk_live_[A-Za-z0-9_-]{16,}/g,/(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})/g,/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g,/eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}/g,/[A-Z]:[\\/]Users[\\/](?!Public\b)[^\s"']+/g];
+for(const file of files){if(/(^|\/)(data|node_modules|\.env[^/]*|secrets\.bin|library\.json|Cookies|Login Data)(\/|$)/i.test(file))issues.push(file+': private path');const bytes=fs.readFileSync(file);if(bytes.length>20*1024*1024)issues.push(file+': unexpected large file');if(binaries.has(file))continue;if(bytes.includes(0))issues.push(file+': unreviewed binary');const s=bytes.toString('utf8');for(const pattern of patterns){pattern.lastIndex=0;if(pattern.test(s))issues.push(file+': credential or personal path pattern');}}
+for(const sample of ['data/library.json','data/secrets.bin','.env','private.pfx','node_modules/x','scripts/release-migration-check.cjs','dist/setup.exe']){try{execFileSync('git',['check-ignore','-q',sample]);}catch{issues.push(sample+': not ignored');}}
+if(issues.length){console.error(issues.join('\n'));process.exitCode=1;}else console.log(`PASS: ${files.length} tracked files audited; private paths ignored; no matched credentials/personal paths`);
