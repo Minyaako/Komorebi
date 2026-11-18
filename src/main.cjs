@@ -77,8 +77,8 @@ const methods={
     if(choice.response!==0)return null;
     if(playtime.running.size||scanner.active||scanner.committing||downloads.processing.size)throw Error('正在运行游戏或安装任务，请稍后重试');
     const before=store.value,merged=mergeRecords(before,input),backupDir=path.join(dataDir,'backups');
-    fs.mkdirSync(backupDir,{recursive:true});fs.writeFileSync(path.join(backupDir,`before-import-${Date.now()}.json`),JSON.stringify(before),{flag:'wx'});
-    store.value=merged.value;try{store.save();}catch(e){store.value=before;throw e;}
+    fs.mkdirSync(backupDir,{recursive:true});store.save();fs.copyFileSync(store.file,path.join(backupDir,`before-import-${Date.now()}.json`),fs.constants.COPYFILE_EXCL);
+    store.value={...before,games:merged.value.games,playtime:merged.value.playtime};try{store.save();}catch(e){store.value=before;throw e;}
     changed();return merged.result;
   },
   async cleanInstallArchives(){
