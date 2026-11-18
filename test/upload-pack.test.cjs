@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const {inspectDirectory,packDirectory,regexMatches}=require('../src/upload-pack.cjs');const {run}=require('../src/core.cjs');
 const seven=path.resolve(__dirname,'../tools/7zip/7z.exe');
 test('目录排除、正则排除、游戏名压缩包与提交 JSON，原目录不变',async()=>{
- const dir=await fs.mkdtemp(path.resolve(__dirname,'../../../work/pack-test-')),root=path.join(dir,'测试游戏');await fs.mkdir(path.join(root,'savedata'),{recursive:true});await fs.mkdir(path.join(root,'assets'));
+ const dir=await fs.mkdtemp(path.resolve(__dirname,'../work/pack-test-')),root=path.join(dir,'测试游戏');await fs.mkdir(path.join(root,'savedata'),{recursive:true});await fs.mkdir(path.join(root,'assets'));
  await fs.writeFile(path.join(root,'game.exe'),'inert fixture');await fs.writeFile(path.join(root,'savedata','user.sav'),'private save');await fs.writeFile(path.join(root,'debug.log'),'log');await fs.writeFile(path.join(root,'assets','story.dat'),'story');
  const plan=await inspectDirectory(root,{excludeFolders:['savedata'],excludeRegex:'\\.log$'});assert.equal(plan.count,2);assert.equal(plan.excluded.length,2);
  const archive=path.join(dir,'out','测试游戏.zip');const manifest={schema:'komorebi.submission',version:1,launch:{type:'file',path:'game.exe'}};

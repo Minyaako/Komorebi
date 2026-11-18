@@ -16,3 +16,22 @@ test('adopting guest records does not assign later guest play to the previous ac
 test('playtime writes only absolute minutes and validates official bounds',async()=>{
  const {NextMoe}=require('../src/nextmoe.cjs');let calls=0;const api=new NextMoe({settings:()=>({}),vault:{get:()=>null},request:async(url,options)=>{calls++;assert.match(url,/\/v2\/me\/playtimes\/7$/);assert.equal(options.method,'PUT');assert.deepEqual(JSON.parse(options.body),{minutes:12});return Response.json({minutes:12});}});api.accessToken=async()=>'fixture';await api.putPlaytime('7',12);await assert.rejects(api.putPlaytime('7',60001));await assert.rejects(api.putPlaytime('7',1.5));assert.equal(calls,1);
 });
+test('ending a launched process waits for exit and leaves other games running',async()=>{
+ const {spawn}=require('node:child_process'),{once}=require('node:events');
+ const f=fixture(),cp=spawn(process.execPath,['-e','setInterval(()=>{},10000)'],{stdio:'ignore',windowsHide:true});
+ try{await once(cp,'spawn');const exit=once(cp,'exit');
+ f.tracker.start({id:'active'},cp);f.tracker.start({id:'other'},new EventEmitter());f.advance(7500);
+ assert.equal(await f.tracker.requestStop('active'),true);assert.equal(await f.tracker.requestStop('active'),false);
+ assert.deepEqual(f.tracker.snapshot().stopping,['active']);await exit;
+ assert.deepEqual(f.tracker.snapshot().running,['other']);assert.equal(f.tracker.snapshot().entries[0].seconds,7.5);
+ }finally{if(cp.exitCode===null&&!cp.killed)cp.kill();f.tracker.close();}
+});
+test('playtime survives a real store reload after exit',()=>{
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{Store}=require('../src/core.cjs');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'komorebi-playtime-'));
+ const file=path.join(root,'state.json'),store=new Store(file),cp=new EventEmitter();let time=1000;
+ const tracker=new Playtime({store,api:{},now:()=>time});
+ try{tracker.start({id:'g'},cp);time+=135000;tracker.resume();time+=15000;tracker.checkpoint();time+=32000;cp.emit('exit');
+ const restored=new Store(file);assert.equal(Object.values(restored.value.playtime.entries)[0].seconds,47);
+ }finally{tracker.close();}
+});

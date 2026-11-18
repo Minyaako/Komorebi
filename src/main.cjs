@@ -67,6 +67,25 @@ function ensureGameIdle(id){
  if(scanner.active||scanner.committing)throw new Error('请等待扫描入库完成');
 }
 const methods={
+  async importRecords(){
+    if(playtime.running.size||scanner.active||scanner.committing||downloads.processing.size)throw Error('请在游戏与安装任务结束后导入记录');
+    const picked=await dialog.showOpenDialog(win,{title:'导入其他管理器记录',filters:[{name:'Reina Exporter / Vnite / WhiteCloud',extensions:['json','sqlite','db']}],properties:['openFile']});
+    if(picked.canceled)return null;
+    const {readRecords,mergeRecords}=require('./record-import.cjs'),input=readRecords(picked.filePaths[0]);
+    const preview=mergeRecords(store.value,input).result;
+    const choice=await dialog.showMessageBox(win,{type:'question',message:`从 ${input.source} 导入记录`,detail:`新增 ${preview.added} 部，合并 ${preview.merged} 部，跳过 ${preview.skipped} 条。\n\n${input.records.slice(0,8).map(g=>g.title).join('\n')}\n\n保留已有状态和笔记，累计时长取较大值。原文件不变；导入前自动备份本机记录。无逐日明细的累计时长不会生成热力图。`,buttons:['导入','取消'],defaultId:0,cancelId:1});
+    if(choice.response!==0)return null;
+    if(playtime.running.size||scanner.active||scanner.committing||downloads.processing.size)throw Error('正在运行游戏或安装任务，请稍后重试');
+    const before=store.value,merged=mergeRecords(before,input),backupDir=path.join(dataDir,'backups');
+    fs.mkdirSync(backupDir,{recursive:true});fs.writeFileSync(path.join(backupDir,`before-import-${Date.now()}.json`),JSON.stringify(before),{flag:'wx'});
+    store.value=merged.value;try{store.save();}catch(e){store.value=before;throw e;}
+    changed();return merged.result;
+  },
+  async cleanInstallArchives(){
+    let cleaned=0,failed=0;
+    for(const job of store.value.jobs){if(job.status!=='complete'||job.kind==='patch'||job.sourceArchive||job.archiveRemovedAt||downloads.processing.has(job.id))continue;await downloads.cleanupArchive(job);if(job.archiveRemovedAt)cleaned++;else if(job.cleanupError)failed++;}
+    return {cleaned,failed};
+  },
   async storageAction({action,id,libraryId,enabled}={}){
     const s=store.value.settings;
     if(['addLibrary','downloadDir','addWatch'].includes(action)){
@@ -97,6 +116,7 @@ const methods={
     store.save();changed();return true;
   },
   searchFamily:args=>api.searchFamily(args),
+  workPatches:args=>require('./patch-search.cjs').search(api,args),
   collection(input){const result=require('./collections.cjs').updateCollection(store,input);changed();return result;},
   async enrichLibrary(){const games=[...store.value.games].filter(g=>g.workId);let at=0,loaded=0,failed=0;await Promise.all(Array.from({length:3},async()=>{while(at<games.length){const g=games[at++];try{const w=await api.detail(g.workId,true);if(store.value.games.includes(g)){g.catalog=metadata(w).catalog;loaded++;}}catch{failed++;}}}));store.save();changed();return {loaded,failed};},
   catalogEntity:args=>api.catalogEntity(args),
@@ -142,7 +162,7 @@ const methods={
   dismissUploadSuggestion(id){game(id).dismissUploadSuggestion=true;store.save();changed();return true;},
   uploadSuggestionPreference(value){store.value.settings.hideUploadSuggestions=!!value;store.save();changed();return true;},
   saveGameLink({id,url,label}){const g=game(id);const link={url:webUrl(url),label:String(label||'个人直链').slice(0,100),addedAt:Date.now()};g.links=g.links||[];if(!g.links.some(l=>l.url===link.url))g.links.push(link);store.save();changed();return true;},
-  keyAssistant:()=>openAssistant({mode:'key',saveKey:async key=>{await methods.connectKey(key);}}),
+  keyAssistant:()=>require('./key-claim.cjs').claimKey({dataDir,clientId:store.value.settings.clientId,vault,connect:key=>methods.connectKey(key)}),
   shareAssistant:input=>openAssistant({mode:'share',input}),
   state:()=>snapshot(),
   search:args=>api.search(args),
@@ -196,6 +216,12 @@ const methods={
     const g=game(id);if(!g.dir)throw new Error('请先安装或关联本地游戏目录');const r=await dialog.showOpenDialog(win,{title:'选择游戏启动程序',defaultPath:g.dir,filters:[{name:'Windows 程序',extensions:['exe']}],properties:['openFile']});
     if(!r.canceled){const real=fs.realpathSync(r.filePaths[0]);if(!inside(fs.realpathSync(g.dir),real)||!real.toLowerCase().endsWith('.exe'))throw new Error('请选择该游戏目录中的 EXE');g.executable=path.relative(fs.realpathSync(g.dir),real);store.save();changed();}return true;
   },
+  async stopGame(id){
+    const session=playtime.running.get(id);if(!session||session.stopping)return false;
+    const choice=await dialog.showMessageBox(win,{type:'question',message:'结束游戏？',detail:'请先保存游戏进度。',buttons:['继续游戏','结束游戏'],defaultId:0,cancelId:0});
+    if(choice.response!==1||playtime.running.get(id)!==session)return false;
+    return playtime.requestStop(id);
+  },
   async launch(id){
     if(playtime.running.has(id))throw new Error('该游戏已经启动，正在记录时长');
     if(deletingGames.has(id))throw new Error('该游戏正在删除');
@@ -203,7 +229,7 @@ const methods={
     if(!g.executable||!fs.existsSync(path.join(g.dir,g.executable))){const candidates=await scanExecutables(g.dir);g.executables=candidates;if(candidates.length===1)g.executable=candidates[0];else {g.executable=null;await methods.chooseExe(id);if(!g.executable)return false;}}
     const exe=await normalizeLaunch(g);store.save();
     if(!inside(fs.realpathSync(g.dir),exe)||!exe.toLowerCase().endsWith('.exe'))throw new Error('启动程序路径无效');
-    await new Promise((resolve,reject)=>{const cp=spawn(exe,[],{cwd:path.dirname(exe),detached:true,stdio:'ignore'});cp.once('error',reject);cp.once('spawn',()=>{playtime.start(g,cp);cp.unref();resolve();});});
+    await new Promise((resolve,reject)=>{const cp=spawn(exe,[],{cwd:path.dirname(exe),detached:true,stdio:'ignore'});cp.once('error',reject);cp.once('spawn',()=>{playtime.start(g,process.platform==='win32'?new (require('./game-process.cjs').GameProcess)(cp,g.dir):cp);cp.unref();resolve();});});
     g.lastPlayed=Date.now();g.state='doing';store.save();changed();return true;
   },
   async openFolder(id){const dir=game(id).dir;if(!dir)throw new Error('这部作品尚未安装');const err=await shell.openPath(dir);if(err)throw new Error(err);return true;},
@@ -216,6 +242,7 @@ const methods={
   setBackground(value){store.value.settings.background=!!value;store.save();changed();return true;},
   openAppData:()=>shell.openPath(dataDir),
   quitApp:()=>{requestQuit();return true;},
+  publicPatchPage:resourceId=>require('./moyu-download.cjs').publicPatchPage(resourceId),
   openWeb,
 };
 if(ownsProfile)app.whenReady().then(async()=>{
@@ -245,6 +272,7 @@ if(ownsProfile)app.whenReady().then(async()=>{
   win.webContents.on('will-navigate',e=>e.preventDefault());
   downloads.on('change',changed);
   await win.loadURL(ui);
+  if(process.argv.includes('--claim-resource-key'))methods.keyAssistant().then(message=>dialog.showMessageBox(win,{message})).catch(e=>dialog.showMessageBox(win,{type:'error',message:e.message}));
   api.userInfo().then(()=>playtime.sync()).catch(()=>{});
   try{tray=new Tray(nativeImage.createFromPath(path.join(base,'src','assets','tray.png')));tray.setToolTip('木漏日 · 后台运行');tray.setContextMenu(Menu.buildFromTemplate([{label:'打开木漏日',click:showMain},{type:'separator'},{label:'退出木漏日',click:()=>requestQuit()}]));tray.on('double-click',showMain);tray.on('click',showMain);}catch(e){console.error('Tray unavailable:',e.message);}
   win.on('close',e=>{if(closing)return;e.preventDefault();if(tray&&store.value.settings.background!==false)win.hide();else requestQuit();});

@@ -5,7 +5,7 @@ const uploadLabels={packing:'正在压缩',opening:'连接官网',login:'需要�
 const transferDone=j=>['complete','cancelled'].includes(j.status);
 function transferButton(action,id,label,icon=''){return `<button data-action="${action}" data-id="${esc(id)}">${icon?transferIcon(icon):''}${label}</button>`;}
 function transferActions(j,kind){
- if(kind==='download')return (j.status==='attention'?transferButton('job-folder',j.id,'打开文件夹','external'):'')+(['active','waiting'].includes(j.status)?transferButton('job-pause',j.id,'暂停','pause'):'')+(j.status==='paused'?transferButton('job-resume',j.id,'继续','play'):'')+(j.status==='error'?transferButton('job-retry',j.id,j.downloaded?'输入密码 / 重试解压':'重试','restore'):'')+(['active','waiting','paused','error'].includes(j.status)?transferButton('job-cancel',j.id,'取消','close'):'')+(j.gameId&&state.games.some(g=>g.id===j.gameId)?transferButton('prod-open-game',j.gameId,'在库中查看','library'):'');
+ if(kind==='download')return ((j.status==='attention'||j.kind==='patch'&&j.status==='complete')?transferButton('job-folder',j.id,'打开文件夹','external'):'')+(['active','waiting'].includes(j.status)?transferButton('job-pause',j.id,'暂停','pause'):'')+(j.status==='paused'?transferButton('job-resume',j.id,'继续','play'):'')+(j.status==='error'?transferButton('job-retry',j.id,j.downloaded?'输入密码 / 重试解压':'重试','restore'):'')+(['active','waiting','paused','error'].includes(j.status)?transferButton('job-cancel',j.id,'取消','close'):'')+(j.gameId&&state.games.some(g=>g.id===j.gameId)?transferButton('prod-open-game',j.gameId,'在库中查看','library'):'');
  return (['opening','login','uploading','submitting','attention'].includes(j.status)?transferButton('upload-show',j.id,'官网进度','external'):'')+(!['complete','cancelled','interrupted','error'].includes(j.status)?transferButton('upload-cancel',j.id,'取消','close'):'')+(['attention','error','interrupted','cancelled'].includes(j.status)&&!j.submitted?transferButton('upload-retry',j.id,'继续上传','restore'):'')+(j.url?`<button data-action="web" data-url="${esc(j.url)}">${transferIcon('external')}查看资源</button>`:'')+(j.archive?transferButton('upload-folder',j.id,'压缩包','external'):'');
 }
 function transferText(el,value){value=String(value??'');if(el.textContent!==value)el.textContent=value;}
@@ -17,7 +17,7 @@ function updateTransferRow(row,j,kind){
  if(known||j.status==='complete')progress.value=Math.max(0,Math.min(100,value||0));else progress.removeAttribute('value');
  const speed=kind==='download'&&j.status==='active'?Math.max(0,j.speed||0):0;
  transferText(row.querySelector('.transfer-metric'),kind==='download'?`${bytes(j.completed||0)} / ${j.total?bytes(j.total):'大小待确认'}${speed?' · '+bytes(speed)+'/s':''}`:known?`${Math.round(value)}%`:'官方未提供百分比');
- transferText(row.querySelector('.transfer-message'),j.error||j.message||(j.status==='extracting'?'下载完成，正在自动解压入库':kind==='upload'&&j.status==='uploading'?'正在上传，等待官方确认':''));
+ transferText(row.querySelector('.transfer-message'),j.error||j.cleanupError||(j.archiveRemovedAt?'已安装，下载压缩包已清理':'')||j.message||(j.status==='extracting'?'下载完成，正在自动解压入库':kind==='upload'&&j.status==='uploading'?'正在上传，等待官方确认':''));
  row.querySelector('.transfer-message').classList.toggle('error',['error','attention','interrupted'].includes(j.status));
  const controls=row.querySelector('.transfer-controls'),html=transferActions(j,kind);if(controls.dataset.html!==html){controls.dataset.html=html;controls.innerHTML=html;}
  const art=row.querySelector('.transfer-art'),cover=j.cover||state.games.find(g=>g.id===j.gameId||g.workId&&String(g.workId)===String(j.workId))?.cover;

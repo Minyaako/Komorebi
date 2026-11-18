@@ -12,7 +12,7 @@ class Playtime {
  start(game,child){
   if(this.running.has(game.id))throw new Error('该游戏正在计时');
   const session={entry:this.entry(game,this.api.profile?.id),last:this.now(),child};this.running.set(game.id,session);
-  child.once('exit',()=>this.stop(game.id));child.once('error',()=>this.stop(game.id));this.store.save();this.changed();
+  child.once('exit',()=>{if(this.running.get(game.id)===session)this.stop(game.id);});this.store.save();this.changed();
  }
  checkpoint(){
   const end=this.now();let dirty=false;
@@ -24,10 +24,15 @@ class Playtime {
   }
   if(dirty){this.store.save();this.changed();}
  }
+ async requestStop(id){
+  const s=this.running.get(id);if(!s||s.stopping)return false;
+  s.stopping=true;this.changed();
+  try{if(!await s.child.kill())throw new Error('未能结束游戏，请在游戏内退出。');return true;}catch(e){s.stopping=false;this.changed();throw e;}
+ }
  stop(id){if(!this.running.has(id))return;this.checkpoint();this.running.delete(id);this.changed();this.sync().catch(()=>{});}
  suspend(){this.checkpoint();this.paused=true;}
  resume(){for(const s of this.running.values())s.last=this.now();this.paused=false;}
- snapshot(){return {entries:Object.values(this.data.entries).map(({owner,...e})=>e),running:[...this.running.keys()],syncError:this.syncError||'',lastSynced:this.lastSynced||null};}
+ snapshot(){return {entries:Object.values(this.data.entries).map(({owner,...e})=>e),running:[...this.running.keys()],stopping:[...this.running].filter(([,s])=>s.stopping).map(([id])=>id),syncError:this.syncError||'',lastSynced:this.lastSynced||null};}
  async sync({includeGuest=false}={}){
   if(this.pending)return this.pending;
   const owner=this.api.profile?.id;if(!owner)return {offline:true};
@@ -55,6 +60,6 @@ class Playtime {
    this.syncError='';this.lastSynced=this.now();this.changed();return {count};
   })().catch(e=>{this.syncError=e.message;this.changed();throw e;}).finally(()=>{this.pending=null;});return this.pending;
  }
- close(){this.checkpoint();clearInterval(this.timer);clearInterval(this.syncTimer);this.running.clear();}
+ close(){this.checkpoint();clearInterval(this.timer);clearInterval(this.syncTimer);for(const s of this.running.values())s.child.dispose?.();this.running.clear();}
 }
 module.exports={Playtime,dayKey};

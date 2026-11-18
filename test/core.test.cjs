@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');const path=require('node:path');const http=require('node:http');
 const {Store,DownloadManager,inspectListing,webUrl,safeName,sleep,run}=require('../src/core.cjs');
 const {zip,randomBytes}=require('./fixtures.cjs');
-const ROOT=path.resolve(__dirname,'../../../work/verification');fs.mkdirSync(ROOT,{recursive:true});
+const ROOT=path.resolve(__dirname,'../work/verification');fs.mkdirSync(ROOT,{recursive:true});
 const tools=path.resolve(__dirname,'../tools');
 async function waitFor(fn,timeout=30000){const end=Date.now()+timeout;while(Date.now()<end){if(fn())return;await sleep(100);}throw new Error('等待超时');}
 test('拒绝跨目录、设备名、ADS、链接与超大解压目录',()=>{
@@ -33,7 +33,7 @@ test('真实 aria2：下载、暂停继续、自动解压入库、失败隔离�
   await waitFor(()=>m.get(jobId).status==='active');await m.action(jobId,'pause');assert.equal(m.get(jobId).status,'paused');await m.action(jobId,'resume');
   await waitFor(()=>['complete','error'].includes(m.get(jobId).status));assert.equal(m.get(jobId).status,'complete',m.get(jobId).error);
   const game=store.value.games[0];assert.equal(fs.readFileSync(path.join(game.dir,'Sample/readme.txt'),'utf8'),'自制链路测试包，不是游戏');assert.ok(game.executable.endsWith('game.exe'));
-  assert.ok(fs.existsSync(m.archive(m.get(jobId))),'保留原压缩包');
+  await waitFor(()=>!m.processing.has(jobId));assert.equal(fs.existsSync(m.archive(m.get(jobId))),false,'安装成功后删除下载压缩包');
   for(const file of ['bad.zip','traversal.zip']){const jid=await m.add({url:url+'/'+file,title:file});await waitFor(()=>['complete','error'].includes(m.get(jid).status));assert.equal(m.get(jid).status,'error');}
   assert.equal(store.value.games.length,1);assert.equal(fs.existsSync(path.join(root,'library','escaped.txt')),false);
   const locked=await m.add({url:url+'/encrypted.7z',title:'密码包'});
@@ -46,4 +46,13 @@ test('真实 aria2：下载、暂停继续、自动解压入库、失败隔离�
   await m.stop();await restored.start();
   try{await restored.action(resumable,'resume');await waitFor(()=>['complete','error'].includes(restored.get(resumable).status));assert.equal(restored.get(resumable).status,'complete',restored.get(resumable).error);}
   finally{await restored.stop();}
+});
+test('cleanup only removes managed successful downloads; source imports and failures survive',async()=>{
+ const root=fs.mkdtempSync(path.join(ROOT,'cleanup-')),store=new Store(path.join(root,'state.json')),m=new DownloadManager({store,dataDir:root});
+ const id='11111111-1111-4111-8111-111111111111',gameDir=path.join(root,'game');fs.mkdirSync(gameDir);
+ const job={id,gameId:'g',filename:'game.zip',status:'complete'},archive=m.archive(job);
+ fs.mkdirSync(path.dirname(archive),{recursive:true});fs.writeFileSync(archive,'download');store.value.jobs.push(job);store.value.games.push({id:'g',dir:gameDir});
+ job.sourceArchive=archive;await m.cleanupArchive(job);assert.ok(fs.existsSync(archive));
+ delete job.sourceArchive;job.status='error';await m.cleanupArchive(job);assert.ok(fs.existsSync(archive));
+ job.status='complete';store.save();await m.cleanupArchive(job);assert.equal(fs.existsSync(archive),false);assert.ok(new Store(store.file).value.jobs[0].archiveRemovedAt);
 });

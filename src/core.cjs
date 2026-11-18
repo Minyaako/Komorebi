@@ -108,6 +108,7 @@ class DownloadManager extends EventEmitter {
       try { await this.rpc('getVersion'); ready = true; break; } catch { await sleep(100); }
     }
     if (!ready) { this.cp.kill(); throw new Error('aria2 无法启动'); }
+    for(const job of this.store.value.jobs)if(job.status==='complete')await this.cleanupArchive(job);
     this.timer = setInterval(() => this.tick(), 600);
     this.cp.on('exit', () => {
       if (!this.stopping) {
@@ -116,22 +117,46 @@ class DownloadManager extends EventEmitter {
       }
     });
   }
+  async cleanupArchive(job){
+    if(job.status!=='complete'||job.sourceArchive||job.archiveRemovedAt)return;
+    const game=this.store.value.games.find(g=>g.id===job.gameId);
+    if(!game?.dir||!fs.existsSync(game.dir))return;
+    try{
+      const base=job.archiveDir||path.join(this.dataDir,'downloads');
+      if(!/^[a-f0-9-]{36}$/i.test(job.id))throw new Error('下载目录标识无效');
+      const folder=path.join(base,job.id),file=this.archive(job);
+      if(path.dirname(file)!==folder||!inside(base,file))throw new Error('下载文件路径无效');
+      if(fs.existsSync(folder)){
+        const realBase=await fsp.realpath(base),realFolder=await fsp.realpath(folder);
+        if(realFolder.toLowerCase()!==path.join(realBase,job.id).toLowerCase()||(fs.existsSync(file)&&(await fsp.lstat(file)).isSymbolicLink()))throw new Error('下载目录存在链接，已保留原文件');
+        if(fs.existsSync(file))await fsp.unlink(file);
+      }
+      await fsp.unlink(file+'.aria2').catch(e=>{if(e.code!=='ENOENT')throw e;});
+      await fsp.rmdir(folder).catch(()=>{});
+      job.archiveRemovedAt=Date.now();delete job.cleanupError;
+    }catch(e){job.cleanupError='安装完成，压缩包清理未完成：'+e.message;}
+    this.changed();
+  }
   async rpc(method, params = []) {
     const r = await fetch(`http://127.0.0.1:${this.port}/jsonrpc`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ jsonrpc:'2.0', id:randomUUID(), method:'aria2.' + method, params:['token:' + this.secret, ...params] }), signal: AbortSignal.timeout(4000) });
     const b = await r.json(); if (b.error) throw new Error('下载引擎操作失败：' + b.error.message); return b.result;
   }
   changed() { this.store.save(); this.emit('change'); }
-  async add({ url, title, workId = null, cover = null, password = '', filename = '', resourceId = null, nsfw = false, libraryId=null }) {
+  async add({ url, title, workId = null, cover = null, password = '', filename = '', kind = 'game', resourceId = null, nsfw = false, libraryId=null }) {
     url = webUrl(url);
     if (this.store.value.jobs.filter(j => !['complete','cancelled','error'].includes(j.status)).length >= 20) throw new Error('最多同时保留 20 个待处理任务');
     const id = randomUUID();
     const root = libraryRoot(this.store,libraryId) || path.join(this.dataDir, 'library');
     const job = { id, archiveDir:this.store.value.settings.downloadDir||path.join(this.dataDir,'downloads'), libraryId:libraryId||this.store.value.settings.defaultLibraryId||null, title: safeName(title), workId, cover, url, resourceId, nsfw, filename: safeName(filename || decodeURIComponent(new URL(url).pathname.split('/').pop()) || 'download.zip'), root, status:'waiting', completed:0, total:0, speed:0, createdAt:Date.now() };
     // A fixed archive filename prevents Content-Disposition from choosing paths.
-    job.filename = /\.(zip|7z|rar)$/i.test(job.filename) ? job.filename : 'download.zip';
+    if (kind === 'patch') {
+      job.kind = 'patch';
+      const ext = path.extname(new URL(url).pathname);
+      job.filename = safeName(title).slice(0,60) + (/^\.[a-z0-9]{1,8}$/i.test(ext) ? ext : '.bin');
+    } else job.filename = /\.(zip|7z|rar)$/i.test(job.filename) ? job.filename : 'download.zip';
     this.passwords.set(id, String(password));
     await fsp.mkdir(path.dirname(this.archive(job)), { recursive:true });
-    await fsp.mkdir(root, { recursive:true });
+    if (job.kind !== 'patch') await fsp.mkdir(root, { recursive:true });
     this.store.value.jobs.unshift(job);
     try { await this.enqueue(job); } catch(e) { job.status='error'; job.error=e.message; }
     this.changed(); return id;
@@ -206,6 +231,14 @@ class DownloadManager extends EventEmitter {
     } finally { this.ticking=false; }
   }
   async install(job) {
+    if (job.kind === 'patch') {
+      job.status = 'complete';
+      job.message = '补丁已保存';
+      job.speed = 0;
+      this.passwords.delete(job.id);
+      this.changed();
+      return;
+    }
     if(this.processing.has(job.id)) return;
     this.processing.add(job.id); job.status='extracting'; job.speed=0; this.changed();
     const staging=path.join(job.root, '.staging-' + job.id);
@@ -229,6 +262,8 @@ class DownloadManager extends EventEmitter {
       const game={id:job.id,libraryId:job.libraryId||null,managedRoot:job.root,workId:job.workId,title:job.title,cover:job.cover,dir:destination,executables,executable:executables.length===1?executables[0]:null,state:'wish',score:null,note:'',addedAt:Date.now()};
       const saved=this.store.value.games.find(g=>!g.dir&&job.workId&&String(g.workId)===String(job.workId));if(saved){Object.assign(saved,{libraryId:game.libraryId,managedRoot:game.managedRoot,dir:game.dir,executables:game.executables,executable:game.executable});game.id=saved.id;}else this.store.value.games.unshift(game); job.status='complete'; job.gameId=game.id; job.error='';
       this.passwords.delete(job.id);
+      this.changed(); // Commit installation before deleting its source download.
+      await this.cleanupArchive(job);
     } catch(e) { job.status='error'; job.error=e.message; }
     finally { this.processing.delete(job.id); this.changed(); }
   }

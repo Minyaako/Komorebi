@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {LibraryScanner,discoverFolders,cleanName,rankMatches,configTitles}=require('../src/library-scan.cjs');
 const {Store}=require('../src/core.cjs');
-function fixture(){const base=path.resolve(__dirname,'../../../work/verification');fs.mkdirSync(base,{recursive:true});const root=fs.mkdtempSync(path.join(base,'komorebi-scan-'));const file=(name)=>{const p=path.join(root,name);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,'INERT TEST ONLY');};return {root,file};}
+function fixture(){const base=path.resolve(__dirname,'../work/verification');fs.mkdirSync(base,{recursive:true});const root=fs.mkdtempSync(path.join(base,'komorebi-scan-'));const file=(name)=>{const p=path.join(root,name);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,'INERT TEST ONLY');};return {root,file};}
 test('name cleaning preserves subtitles; exact localized titles outrank sequels',()=>{
  assert.equal(cleanName('サヤガタリ-妖刀の約束-_简体中文版（含全CG存档）'),'サヤガタリ-妖刀の約束-');
  const ranked=rankMatches('游戏名',[{id:'2',display_name:'游戏名 2'},{id:'1',display_name:'Game',localized:{'zh-Hans':{value:'游戏名'}}}]);

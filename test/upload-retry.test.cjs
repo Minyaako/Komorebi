@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path');
 const {Uploads}=require('../src/uploads.cjs');
 test('发布入口失败后复用已有ZIP及提交信息，阻止重复继续和已提交任务重投',async()=>{
- const dir=await fs.mkdtemp(path.resolve(__dirname,'../../../work/retry-test-')),archive=path.join(dir,'uploads','fixture','游戏.zip');
+ const dir=await fs.mkdtemp(path.resolve(__dirname,'../work/retry-test-')),archive=path.join(dir,'uploads','fixture','游戏.zip');
  await fs.mkdir(archive+'.metadata',{recursive:true});await fs.writeFile(archive,'fixture');await fs.writeFile(path.join(archive+'.metadata','komorebi.json'),JSON.stringify({schema:'komorebi.submission',version:1,work:{id:'221469'},resource:{title:'游戏',description:'转载资源'},launch:{type:'file',path:'game.exe'}}));
  const j={id:'fixture',status:'attention',submitted:false,archive};const store={value:{games:[],uploads:[j]},save(){}};let calls=0,received;
  const uploads=new Uploads({store,dataDir:dir,startOfficial:args=>{calls++;received=args;return {show(){},cancel(){}};}});

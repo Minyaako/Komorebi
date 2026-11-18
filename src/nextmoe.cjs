@@ -94,12 +94,18 @@ class NextMoe {
     if(body) headers['Content-Type']='application/json';
     return this.json(ORIGIN+route,{method,headers,...(body?{body:JSON.stringify(body)}:{})});
   }
-  searchFamily({object,query='',cursor='',nsfw=false,limit=20}={}){
+  async searchFamily({object,query='',cursor='',nsfw=false,limit=20}={}){
+    if(object==='patch')return require('./patch-search.cjs').search(this,{query,cursor,nsfw});
     if(!['work','tag','company','character','credit_name','series','engine','trait'].includes(object))throw new Error('未知搜索类别');
     const p=new URLSearchParams({object,q:String(query).trim().slice(0,200),limit:String(Math.min(20,Math.max(1,Number(limit)||20))),nsfw:String(!!nsfw),include_total:'true',locale:'zh'});if(cursor)p.set('cursor',String(cursor).slice(0,512));
-    const route='/v2/catalog/search?'+p;return this.cached(route,300000,()=>this.api(route));
+    const route='/v2/catalog/search?'+p;return this.cached(route,300000,async()=>{
+      const result=await this.api(route);
+      if(cursor||object==='tag')return result;
+      return require('./fuzzy-search.cjs').fallback(result,query,q=>{const v=new URLSearchParams(p);v.set('q',q);v.set('limit','20');return this.api('/v2/catalog/search?'+v);});
+    });
   }
   async catalogEntity({object,id:entityId,cursor='',nsfw=false,more=false}={}){
+    if(object==='patch')return require('./patch-search.cjs').detail(this,{id:entityId,cursor,nsfw});
     const families={company:'companies',character:'characters',credit_name:'credit-names',series:'series',engine:'engines',trait:'traits'};
     if(!families[object])throw new Error('未知目录实体');const safeId=id(entityId),suffix=new URLSearchParams({nsfw:String(!!nsfw),limit:'48',include_total:'true'});if(cursor)suffix.set('cursor',String(cursor).slice(0,512));
     let route;
@@ -119,7 +125,11 @@ class NextMoe {
     if(cursor) p.set('cursor',cursor);
     if(['rating_bangumi','rating_vndb','rating_nextmoe','rating_dlsite','rating_erogamescape','popularity','released_desc','released_asc'].includes(sort)) p.set('sort',sort);
     const route='/v2/catalog/works?'+p;
-    const result=await this.cached(route,120000,()=>this.api(route));
+    const result=await this.cached(route,120000,async()=>{
+      const original=await this.api(route);
+      if(cursor)return original;
+      return require('./fuzzy-search.cjs').fallback(original,query,q=>{const v=new URLSearchParams(p);v.set('q',q);return this.api('/v2/catalog/works?'+v);});
+    });
     if(!directOnly)return result;
     const visible=await require('./hosted-search.cjs').filterHosted(this,result.items||[],nsfw);
     return {...result,items:visible,total:undefined,filtered:true};

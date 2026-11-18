@@ -1,7 +1,7 @@
 {
   "appId": "dev.komorebi.desktop",
   "productName": "Komorebi",
-  "directories": { "output": "../Komorebi-installer", "buildResources": "build" },
+  "directories": { "output": "dist/installers", "buildResources": "build" },
   "artifactName": "Komorebi-${version}-Setup-${arch}.${ext}",
   "win": { "executableName": "Komorebi", "target": [{ "target": "nsis", "arch": ["x64"] }], "signAndEditExecutable": false },
   "nsis": {
